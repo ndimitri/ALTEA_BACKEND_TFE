@@ -19,7 +19,7 @@ public class Soin {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "date_soin", nullable = false)
+    @Column(name = "date_soin", nullable = true)
     private LocalDateTime dateSoin;
 
     @Column(columnDefinition = "TEXT")
@@ -43,6 +43,12 @@ public class Soin {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
     private Module module;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rdv_id", nullable = true)
+    private RendezVous rendezVous;
+
 
     @PrePersist
     void onCreate() {

@@ -3,6 +3,7 @@ package fr.ephec.altea.dto;
 import fr.ephec.altea.entity.Address;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,5 +25,6 @@ public class RendezVousDTO {
     private String patientNom;
     private String patientPrenom;
     private Address patientAdresse;
+    private List<SoinDTO> soins;
     private LocalDateTime createdAt;
 }

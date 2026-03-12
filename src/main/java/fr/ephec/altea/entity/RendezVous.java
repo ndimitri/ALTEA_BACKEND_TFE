@@ -1,6 +1,8 @@
 package fr.ephec.altea.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -19,7 +21,6 @@ public class RendezVous {
     @Column(name = "date_heure_fin", nullable = false)
     private LocalDateTime dateHeureFin;
 
-    @Column(length = 300)
     @Embedded
     private Address lieu;
 
@@ -47,6 +48,11 @@ public class RendezVous {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
+    @OneToMany(mappedBy = "rendezVous", cascade = CascadeType.ALL, orphanRemoval = false)
+    @Builder.Default
+    private List<Soin> soins = new ArrayList<>();
+
+
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -55,4 +61,8 @@ public class RendezVous {
     public enum StatutRdv {
         PLANIFIE, REALISE, ANNULE
     }
+
+
+    public void addSoin(Soin soin) { soins.add(soin); soin.setRendezVous(this); }
+    public void removeSoin(Soin soin) { soins.remove(soin); soin.setRendezVous(null); }
 }

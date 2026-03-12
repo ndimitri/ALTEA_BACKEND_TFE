@@ -8,7 +8,8 @@ import org.springframework.stereotype.Repository;
 // ==================== Soin ====================
 @Repository
 public interface SoinRepository extends JpaRepository<Soin, Long> {
-    List<Soin> findByPatientIdOrderByDateSoinDesc(Long patientId);
-    List<Soin> findByUtilisateurIdOrderByDateSoinDesc(Long utilisateurId);
+    List<Soin> findByPatientIdOrderByCreatedAtDesc(Long patientId);
+    List<Soin> findByUtilisateurIdOrderByCreatedAtDesc(Long utilisateurId);
     boolean existsByIdAndUtilisateurId(Long id, Long utilisateurId);
+    List<Soin> findByRendezVousIdOrderByCreatedAtDesc(Long rdvId);
 }

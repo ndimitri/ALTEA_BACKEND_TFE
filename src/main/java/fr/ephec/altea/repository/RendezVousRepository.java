@@ -31,4 +31,7 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             @Param("excludeId") Long excludeId);
 
     boolean existsByIdAndUtilisateurId(Long id, Long utilisateurId);
+
+    // Historique des RDV d'un patient, trié du plus récent au plus ancien
+    List<RendezVous> findByPatientIdOrderByDateHeureDebutDesc(Long patientId);
 }
