@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     List<Patient> findByUtilisateurId(Long utilisateurId);
     List<Patient> findByUtilisateurIdOrderByNomAsc(Long utilisateurId);
+    long countByUtilisateurId(Long utilisateurId);
 
     @Query("SELECT p FROM Patient p WHERE p.utilisateur.id = :uid " +
            "AND (LOWER(p.nom) LIKE LOWER(CONCAT('%',:q,'%')) " +

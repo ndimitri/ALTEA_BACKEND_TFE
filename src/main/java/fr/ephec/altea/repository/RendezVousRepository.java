@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     List<RendezVous> findByUtilisateurIdOrderByDateHeureDebutAsc(Long utilisateurId);
+    long countByUtilisateurId(Long utilisateurId);
 
     @Query("SELECT r FROM RendezVous r WHERE r.utilisateur.id = :uid " +
            "AND r.dateHeureDebut >= :debut AND r.dateHeureFin <= :fin " +
