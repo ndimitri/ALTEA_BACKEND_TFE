@@ -17,7 +17,7 @@ public class OpenApiConfig {
                         .description("API REST - Plateforme d'aide aux soins à domicile\n\n" +
                                 "**Admin par défaut**: admin@altea.be / Admin1234!")
                         .version("1.0.0")
-                        .contact(new Contact().name("Nicolas Dimitriadis").email("nicolas@ephec.be")))
+                        .contact(new Contact().name("Nicolas Dimitriadis").email("dimitriadis.nicolas@gmail.com")))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme()
