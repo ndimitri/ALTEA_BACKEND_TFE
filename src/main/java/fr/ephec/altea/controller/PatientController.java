@@ -4,7 +4,8 @@ import fr.ephec.altea.dto.AddressDTO;
 import fr.ephec.altea.dto.PatientDTO;
 import fr.ephec.altea.entity.*;
 import fr.ephec.altea.exception.*;
-import fr.ephec.altea.repository.*;
+import fr.ephec.altea.service.PatientService;
+import fr.ephec.altea.service.UtilisateurService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,17 +24,17 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class PatientController {
 
-    private final PatientRepository patientRepository;
-    private final UtilisateurRepository utilisateurRepository;
+    private final PatientService patientService;
+    private final UtilisateurService utilisateurService;
 
-    public PatientController(PatientRepository patientRepository,
-                              UtilisateurRepository utilisateurRepository) {
-        this.patientRepository = patientRepository;
-        this.utilisateurRepository = utilisateurRepository;
+    public PatientController(PatientService patientService,
+                              UtilisateurService utilisateurService) {
+        this.patientService = patientService;
+        this.utilisateurService = utilisateurService;
     }
 
     private Utilisateur getUser(UserDetails ud) {
-        return utilisateurRepository.findByEmail(ud.getUsername())
+        return utilisateurService.findByEmail(ud.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
     }
 
@@ -69,8 +70,8 @@ public class PatientController {
                                                     @RequestParam(required = false) String q) {
         Utilisateur user = getUser(ud);
         List<Patient> patients = (q != null && !q.isBlank())
-                ? patientRepository.searchByNomOrPrenom(user.getId(), q)
-                : patientRepository.findByUtilisateurIdOrderByNomAsc(user.getId());
+                ? patientService.searchByNomOrPrenom(user.getId(), q)
+                : patientService.findByUtilisateurIdOrderByNomAsc(user.getId());
         return ResponseEntity.ok(patients.stream().map(this::toDTO).toList());
     }
 
@@ -79,7 +80,7 @@ public class PatientController {
     public ResponseEntity<List<PatientDTO>> getForMap(@AuthenticationPrincipal UserDetails ud) {
         Utilisateur user = getUser(ud);
         return ResponseEntity.ok(
-                patientRepository.findWithCoordinatesByUtilisateurId(user.getId())
+                patientService.findWithCoordinatesByUtilisateurId(user.getId())
                         .stream().map(this::toDTO).toList());
     }
 
@@ -87,7 +88,7 @@ public class PatientController {
     public ResponseEntity<PatientDTO> getById(@PathVariable Long id,
                                                @AuthenticationPrincipal UserDetails ud) {
         Utilisateur user = getUser(ud);
-        Patient p = patientRepository.findById(id)
+        Patient p = patientService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient " + id + " introuvable"));
         checkOwnership(p, user);
         return ResponseEntity.ok(toDTO(p));
@@ -103,7 +104,7 @@ public class PatientController {
         Patient p = new Patient();
         applyDTO(p, dto);
         p.setUtilisateur(user);
-        Patient saved = patientRepository.save(p);
+        Patient saved = patientService.save(p);
         return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(saved));
     }
 
@@ -112,21 +113,21 @@ public class PatientController {
                                               @Valid @RequestBody PatientDTO dto,
                                               @AuthenticationPrincipal UserDetails ud) {
         Utilisateur user = getUser(ud);
-        Patient p = patientRepository.findById(id)
+        Patient p = patientService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient introuvable"));
         checkOwnership(p, user);
         applyDTO(p, dto);
-        return ResponseEntity.ok(toDTO(patientRepository.save(p)));
+        return ResponseEntity.ok(toDTO(patientService.save(p)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id,
                                         @AuthenticationPrincipal UserDetails ud) {
         Utilisateur user = getUser(ud);
-        Patient p = patientRepository.findById(id)
+        Patient p = patientService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient introuvable"));
         checkOwnership(p, user);
-        patientRepository.delete(p);
+        patientService.delete(p);
         return ResponseEntity.noContent().build();
     }
 

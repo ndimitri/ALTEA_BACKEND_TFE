@@ -4,13 +4,13 @@ import fr.ephec.altea.dto.*;
 import fr.ephec.altea.entity.*;
 import fr.ephec.altea.entity.Module;
 import fr.ephec.altea.exception.*;
-import fr.ephec.altea.repository.*;
+import fr.ephec.altea.service.UtilisateurService;
+import fr.ephec.altea.service.ModuleService;
+import fr.ephec.altea.service.ModuleUtilisateurService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,43 +24,41 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    private final UtilisateurRepository utilisateurRepository;
-    private final ModuleRepository moduleRepository;
-    private final ModuleUtilisateurRepository moduleUtilisateurRepository;
+    private final UtilisateurService utilisateurService;
+    private final ModuleService moduleService;
+    private final ModuleUtilisateurService moduleUtilisateurService;
 
-    AdminController(UtilisateurRepository utilisateurRepository,
-                    ModuleRepository moduleRepository,
-                    ModuleUtilisateurRepository moduleUtilisateurRepository) {
-        this.utilisateurRepository = utilisateurRepository;
-        this.moduleRepository = moduleRepository;
-        this.moduleUtilisateurRepository = moduleUtilisateurRepository;
+    AdminController(UtilisateurService utilisateurService,
+                    ModuleService moduleService,
+                    ModuleUtilisateurService moduleUtilisateurService) {
+        this.utilisateurService = utilisateurService;
+        this.moduleService = moduleService;
+        this.moduleUtilisateurService = moduleUtilisateurService;
     }
 
     @GetMapping("/users")
     public ResponseEntity<List<UtilisateurDTO>> getAllUsers() {
-        return ResponseEntity.ok(utilisateurRepository.findAll()
+        return ResponseEntity.ok(utilisateurService.findAll()
                 .stream().map(this::toDTO).toList());
     }
 
     @PutMapping("/users/{id}/toggle")
     public ResponseEntity<UtilisateurDTO> toggleUser(@PathVariable Long id) {
-        Utilisateur user = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
-        user.setActif(!user.getActif());
-        return ResponseEntity.ok(toDTO(utilisateurRepository.save(user)));
+        Utilisateur user = utilisateurService.toggleUserStatus(id);
+        return ResponseEntity.ok(toDTO(user));
     }
 
     @PostMapping("/users/{userId}/modules/{moduleId}")
     public ResponseEntity<Void> activateModule(@PathVariable Long userId, @PathVariable Long moduleId) {
-        Utilisateur user = utilisateurRepository.findById(userId)
+        Utilisateur user = utilisateurService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
-        Module module = moduleRepository.findById(moduleId)
+        Module module = moduleService.findById(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Module introuvable"));
 
-        moduleUtilisateurRepository.findByUtilisateurIdAndModuleId(userId, moduleId)
+        moduleUtilisateurService.findByUtilisateurIdAndModuleId(userId, moduleId)
                 .ifPresentOrElse(
-                        mu -> { mu.setActif(true); moduleUtilisateurRepository.save(mu); },
-                        () -> moduleUtilisateurRepository.save(
+                        mu -> { mu.setActif(true); moduleUtilisateurService.save(mu); },
+                        () -> moduleUtilisateurService.save(
                                 ModuleUtilisateur.builder().utilisateur(user).module(module).actif(true).build())
                 );
         return ResponseEntity.ok().build();
@@ -68,8 +66,8 @@ public class AdminController {
 
     @DeleteMapping("/users/{userId}/modules/{moduleId}")
     public ResponseEntity<Void> deactivateModule(@PathVariable Long userId, @PathVariable Long moduleId) {
-        moduleUtilisateurRepository.findByUtilisateurIdAndModuleId(userId, moduleId)
-                .ifPresent(mu -> { mu.setActif(false); moduleUtilisateurRepository.save(mu); });
+        moduleUtilisateurService.findByUtilisateurIdAndModuleId(userId, moduleId)
+                .ifPresent(mu -> { mu.setActif(false); moduleUtilisateurService.save(mu); });
         return ResponseEntity.ok().build();
     }
 

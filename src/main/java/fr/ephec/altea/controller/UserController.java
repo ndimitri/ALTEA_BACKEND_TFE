@@ -5,10 +5,10 @@ import fr.ephec.altea.dto.UserProfileDTO;
 import fr.ephec.altea.entity.Utilisateur;
 import fr.ephec.altea.exception.ConflictException;
 import fr.ephec.altea.exception.ResourceNotFoundException;
-import fr.ephec.altea.repository.ModuleUtilisateurRepository;
-import fr.ephec.altea.repository.PatientRepository;
-import fr.ephec.altea.repository.RendezVousRepository;
-import fr.ephec.altea.repository.UtilisateurRepository;
+import fr.ephec.altea.service.UtilisateurService;
+import fr.ephec.altea.service.PatientService;
+import fr.ephec.altea.service.RendezVousService;
+import fr.ephec.altea.service.ModuleUtilisateurService;
 import fr.ephec.altea.security.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -32,21 +32,21 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
-    private final UtilisateurRepository utilisateurRepository;
-    private final PatientRepository patientRepository;
-    private final RendezVousRepository rendezVousRepository;
-    private final ModuleUtilisateurRepository moduleUtilisateurRepository;
+    private final UtilisateurService utilisateurService;
+    private final PatientService patientService;
+    private final RendezVousService rendezVousService;
+    private final ModuleUtilisateurService moduleUtilisateurService;
     private final JwtUtils jwtUtils;
 
-    public UserController(UtilisateurRepository utilisateurRepository,
-                          PatientRepository patientRepository,
-                          RendezVousRepository rendezVousRepository,
-                          ModuleUtilisateurRepository moduleUtilisateurRepository,
+    public UserController(UtilisateurService utilisateurService,
+                          PatientService patientService,
+                          RendezVousService rendezVousService,
+                          ModuleUtilisateurService moduleUtilisateurService,
                           JwtUtils jwtUtils) {
-        this.utilisateurRepository = utilisateurRepository;
-        this.patientRepository = patientRepository;
-        this.rendezVousRepository = rendezVousRepository;
-        this.moduleUtilisateurRepository = moduleUtilisateurRepository;
+        this.utilisateurService = utilisateurService;
+        this.patientService = patientService;
+        this.rendezVousService = rendezVousService;
+        this.moduleUtilisateurService = moduleUtilisateurService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -64,7 +64,7 @@ public class UserController {
 
         String normalizedEmail = request.getEmail().trim();
         if (!user.getEmail().equalsIgnoreCase(normalizedEmail)
-                && utilisateurRepository.existsByEmail(normalizedEmail)) {
+                && utilisateurService.existsByEmail(normalizedEmail)) {
             throw new ConflictException("Cette adresse email est déjà utilisée");
         }
 
@@ -77,7 +77,7 @@ public class UserController {
             user.setTelephone(normalizedPhone.isEmpty() ? null : normalizedPhone);
         }
 
-        Utilisateur savedUser = utilisateurRepository.save(user);
+        Utilisateur savedUser = utilisateurService.save(user);
         String refreshedToken = !savedUser.getEmail().equals(ud.getUsername())
                 ? jwtUtils.generateToken(savedUser.getEmail())
                 : null;
@@ -86,12 +86,12 @@ public class UserController {
     }
 
     private Utilisateur getUser(UserDetails ud) {
-        return utilisateurRepository.findByEmail(ud.getUsername())
+        return utilisateurService.findByEmail(ud.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
     }
 
     private UserProfileDTO toProfileDTO(Utilisateur user, String refreshedToken) {
-        List<String> activeModules = moduleUtilisateurRepository.findByUtilisateurIdAndActifTrue(user.getId())
+        List<String> activeModules = moduleUtilisateurService.findByUtilisateurIdAndActifTrue(user.getId())
                 .stream()
                 .map(mu -> mu.getModule().getNom())
                 .sorted()
@@ -112,8 +112,8 @@ public class UserController {
                 .actif(user.getActif())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
-                .patientCount(patientRepository.countByUtilisateurId(user.getId()))
-                .rendezVousCount(rendezVousRepository.countByUtilisateurId(user.getId()))
+                .patientCount(patientService.countByUtilisateurId(user.getId()))
+                .rendezVousCount(rendezVousService.countByUtilisateurId(user.getId()))
                 .activeModuleCount(activeModules.size())
                 .activeModules(activeModules)
                 .accountAgeDays(accountAgeDays)

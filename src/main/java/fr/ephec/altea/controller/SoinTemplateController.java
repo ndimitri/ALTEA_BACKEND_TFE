@@ -3,7 +3,9 @@ package fr.ephec.altea.controller;
 import fr.ephec.altea.dto.SoinTemplateDTO;
 import fr.ephec.altea.entity.*;
 import fr.ephec.altea.exception.ResourceNotFoundException;
-import fr.ephec.altea.repository.*;
+import fr.ephec.altea.service.SoinTemplateService;
+import fr.ephec.altea.service.UtilisateurService;
+import fr.ephec.altea.service.ModuleService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,20 +25,20 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class SoinTemplateController {
 
-  private final SoinTemplateRepository templateRepository;
-  private final UtilisateurRepository utilisateurRepository;
-  private final ModuleRepository moduleRepository;
+  private final SoinTemplateService templateService;
+  private final UtilisateurService utilisateurService;
+  private final ModuleService moduleService;
 
-  public SoinTemplateController(SoinTemplateRepository templateRepository,
-      UtilisateurRepository utilisateurRepository,
-      ModuleRepository moduleRepository) {
-    this.templateRepository = templateRepository;
-    this.utilisateurRepository = utilisateurRepository;
-    this.moduleRepository = moduleRepository;
+  public SoinTemplateController(SoinTemplateService templateService,
+      UtilisateurService utilisateurService,
+      ModuleService moduleService) {
+    this.templateService = templateService;
+    this.utilisateurService = utilisateurService;
+    this.moduleService = moduleService;
   }
 
   private Utilisateur getUser(UserDetails ud) {
-    return utilisateurRepository.findByEmail(ud.getUsername())
+    return utilisateurService.findByEmail(ud.getUsername())
         .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
   }
 
@@ -58,9 +60,9 @@ public class SoinTemplateController {
     Utilisateur user = getUser(ud);
     List<SoinTemplate> templates;
     if (moduleId != null) {
-      templates = templateRepository.findByUtilisateurIdAndModuleIdOrderByNomAsc(user.getId(), moduleId);
+      templates = templateService.findByUtilisateurIdAndModuleIdOrderByNomAsc(user.getId(), moduleId);
     } else {
-      templates = templateRepository.findByUtilisateurIdOrderByNomAsc(user.getId());
+      templates = templateService.findByUtilisateurIdOrderByNomAsc(user.getId());
     }
     return ResponseEntity.ok(templates.stream().map(this::toDTO).toList());
   }
@@ -73,7 +75,7 @@ public class SoinTemplateController {
     // Vérifie juste que l'utilisateur est connecté
     getUser(ud);
     // Retourne tous les templates du module sans filtre utilisateur
-    List<SoinTemplate> globaux = templateRepository.findByModuleIdOrderByNomAsc(moduleId);
+    List<SoinTemplate> globaux = templateService.findByModuleIdOrderByNomAsc(moduleId);
     return ResponseEntity.ok(globaux.stream().map(this::toDTO).toList());
   }
 
@@ -84,9 +86,9 @@ public class SoinTemplateController {
       @AuthenticationPrincipal UserDetails ud) {
     Utilisateur user = getUser(ud);
     // Templates globaux du module (créés par l'admin)
-    List<SoinTemplate> globaux = templateRepository.findByModuleIdOrderByNomAsc(moduleId);
+    List<SoinTemplate> globaux = templateService.findByModuleIdOrderByNomAsc(moduleId);
     // Templates personnels de l'utilisateur pour ce module
-    List<SoinTemplate> personnels = templateRepository.findByUtilisateurIdAndModuleIdOrderByNomAsc(user.getId(), moduleId);
+    List<SoinTemplate> personnels = templateService.findByUtilisateurIdAndModuleIdOrderByNomAsc(user.getId(), moduleId);
 
     // Fusion sans doublons (un user peut avoir ses propres templates + les globaux)
     List<SoinTemplate> tous = new ArrayList<>(globaux);
@@ -108,8 +110,8 @@ public class SoinTemplateController {
         .utilisateur(user)
         .build();
     if (dto.getModuleId() != null)
-      moduleRepository.findById(dto.getModuleId()).ifPresent(t::setModule);
-    return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(templateRepository.save(t)));
+      moduleService.findById(dto.getModuleId()).ifPresent(t::setModule);
+    return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(templateService.save(t)));
   }
 
   @PutMapping("/{id}")
@@ -117,7 +119,7 @@ public class SoinTemplateController {
       @Valid @RequestBody SoinTemplateDTO dto,
       @AuthenticationPrincipal UserDetails ud) {
     Utilisateur user = getUser(ud);
-    SoinTemplate t = templateRepository.findById(id)
+    SoinTemplate t = templateService.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Template introuvable"));
     if (!t.getUtilisateur().getId().equals(user.getId()))
       throw new AccessDeniedException("Accès refusé");
@@ -127,19 +129,19 @@ public class SoinTemplateController {
     t.setNotes(dto.getNotes());
     t.setModuleSpecifique(dto.getModuleSpecifique());
     if (dto.getModuleId() != null)
-      moduleRepository.findById(dto.getModuleId()).ifPresent(t::setModule);
-    return ResponseEntity.ok(toDTO(templateRepository.save(t)));
+      moduleService.findById(dto.getModuleId()).ifPresent(t::setModule);
+    return ResponseEntity.ok(toDTO(templateService.save(t)));
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable Long id,
       @AuthenticationPrincipal UserDetails ud) {
     Utilisateur user = getUser(ud);
-    SoinTemplate t = templateRepository.findById(id)
+    SoinTemplate t = templateService.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Template introuvable"));
     if (!t.getUtilisateur().getId().equals(user.getId()))
       throw new AccessDeniedException("Accès refusé");
-    templateRepository.delete(t);
+    templateService.delete(t);
     return ResponseEntity.noContent().build();
   }
 }
